@@ -1,0 +1,43 @@
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console  # Access at http://localhost:8080/h2-console
+  r2dbc:
+    url: r2dbc:h2:file:///~/finflowdb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  datasource: # Needed only for H2 web console (JDBC connection)
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:~/finflowdb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+  main:
+    web-application-type: reactive
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.springframework.r2dbc.core: DEBUG   # Show R2DBC SQL
+    io.r2dbc.h2: DEBUG
+    root: INFO
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+kafka:
+  bootstrap-servers: localhost:9092
+  topic:
+    transactions: transactions-topic
+  producer:
+    client-id: finflow-producer
+  consumer:
+    group-id: finflow-consumer-group
