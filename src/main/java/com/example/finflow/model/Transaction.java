@@ -6,14 +6,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table("transaction")
 public class Transaction {
+
     @Id
     private Long transactionId;
     private Long accountId;
@@ -27,6 +28,4 @@ public class Transaction {
         this.amount = amount;
         this.eventDate = eventDate;
     }
-
-
 }

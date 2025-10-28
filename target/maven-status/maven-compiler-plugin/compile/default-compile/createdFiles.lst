@@ -6,6 +6,7 @@ com/example/finflow/FinFlowReactiveApplication.class
 com/example/finflow/repository/TransactionRepository.class
 com/example/finflow/dto/AccountResponse.class
 com/example/finflow/config/KafkaConfig.class
+com/example/finflow/model/Account$AccountBuilder.class
 com/example/finflow/model/Transaction.class
 com/example/finflow/events/TransactionEventPublisher.class
 com/example/finflow/exception/GlobalExceptionHandler.class

@@ -19,4 +19,6 @@ public class CreateTransactionRequest {
     private BigDecimal amount;
 
 
+    public CreateTransactionRequest(Long accountId, int operationTypeId, BigDecimal bigDecimal) {
+    }
 }
