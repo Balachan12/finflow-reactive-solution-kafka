@@ -1,13 +1,12 @@
 package com.example.finflow.service;
 
-import com.example.finflow.dto.CreateAccountRequest;
-import com.example.finflow.exception.BusinessException;
 import com.example.finflow.model.Account;
 import com.example.finflow.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -15,17 +14,20 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
 
-    public Mono<Account> createAccount(CreateAccountRequest request) {
-        if (request == null || !StringUtils.hasText(request.getDocumentNumber())) {
-            return Mono.error(new BusinessException("documentNumber must not be blank"));
-        }
-        Account account = new Account();
-        account.setDocumentNumber(request.getDocumentNumber().trim());
-        return accountRepository.save(account);
+    public Mono<Account> createAccount(Account request) {
+        Account toSave = Account.builder()
+                .documentNumber(request.getDocumentNumber())
+                .creditLimit(request.getCreditLimit() != null ? request.getCreditLimit() : BigDecimal.valueOf(1000))
+                .availableLimit(request.getAvailableLimit() != null ? request.getAvailableLimit() : BigDecimal.valueOf(1000))
+                .build();
+
+        return accountRepository.save(toSave)
+                .doOnError(ex -> {
+                    ex.printStackTrace();
+                });
     }
 
-    public Mono<Account> getAccount(Long id) {
-        return accountRepository.findById(id)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("account not found")));
+    public Mono<Account> getAccountById(Long id) {
+        return accountRepository.findById(id);
     }
 }

@@ -7,18 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @NoArgsConstructor @AllArgsConstructor
 public class CreateTransactionRequest {
-    @NotNull
-    private Long accountId;
-    @NotNull
-    private Integer operationTypeId;
-    @NotNull
-    private BigDecimal amount;
-
-
-    public CreateTransactionRequest(Long accountId, int operationTypeId, BigDecimal bigDecimal) {
-    }
+    @NotNull Long accountId;
+    @NotNull Integer operationTypeId;
+    @NotNull BigDecimal amount;
 }

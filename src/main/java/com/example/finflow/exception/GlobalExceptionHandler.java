@@ -1,7 +1,5 @@
 package com.example.finflow.exception;
 
-import com.example.finflow.exception.BusinessException;
-import com.example.finflow.exception.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +37,7 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
+    // ✅ Unified handler for all validation exceptions (no duplication)
     @ExceptionHandler({MethodArgumentNotValidException.class, WebExchangeBindException.class, ServerWebInputException.class})
     public ResponseEntity<Map<String, Object>> handleValidation(Exception ex) {
         String message;
@@ -50,6 +49,8 @@ public class GlobalExceptionHandler {
             message = webe.getBindingResult().getFieldErrors().stream()
                     .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                     .collect(Collectors.joining("; "));
+        } else if (ex instanceof ServerWebInputException swe) {
+            message = swe.getReason();
         } else {
             message = ex.getMessage();
         }
@@ -61,8 +62,9 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "Data integrity violation", null);
     }
 
+    // ✅ Generic fallback
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", null);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), null);
     }
 }

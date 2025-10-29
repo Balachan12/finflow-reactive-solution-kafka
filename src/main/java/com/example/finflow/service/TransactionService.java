@@ -13,14 +13,6 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- *  1 - PURCHASE
- *  2 - INSTALLMENT PURCHASE
- *  3 - WITHDRAWAL
- *  4 - PAYMENT
- * Debit types (1, 2, 3): Allowed only if availableLimit >= amount
- * Credit type  (4): Always OK, restores availableLimit
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,53 +21,63 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
+    /**
+     * Operation types:
+     * 1 – PURCHASE (debit, allowed if available ≥ amount)
+     * 2 – INSTALLMENT PURCHASE (debit, allowed if available ≥ amount)
+     * 3 – WITHDRAWAL (debit+fee, allowed if available ≥ amount+fee)
+     * 4 – PAYMENT (credit, always allowed, cap at creditLimit)
+     */
     public Mono<Transaction> createTransaction(CreateTransactionRequest request) {
         return accountRepository.findById(request.getAccountId())
                 .flatMap(account -> {
-
                     BigDecimal amount = request.getAmount();
                     Integer operationTypeId = request.getOperationTypeId();
 
-                    // Create transaction
                     Transaction tx = new Transaction(
-                            account.getId(),
+                            account.getAccountId(),
                             operationTypeId,
                             amount,
                             LocalDateTime.now()
                     );
 
-
                     boolean isOk = false;
 
-                    if (isDebitOperation(operationTypeId)) {
-                        // Debit operations (Purchase, Installment, Withdrawal)
-                        if (account.canPurchase(amount)) {
-                            account.applyPurchase(amount);
+                    switch (operationTypeId) {
+                        case 1 -> { // PURCHASE
+                            if (account.canDebit(amount)) {
+                                account.applyPurchase(amount);
+                                isOk = true;
+                            }
+                        }
+                        case 2 -> { // INSTALLMENT PURCHASE
+                            if (account.canDebit(amount)) {
+                                account.applyInstallmentPurchase(amount);
+                                isOk = true;
+                            }
+                        }
+                        case 3 -> { // WITHDRAWAL
+                            // check with fee as well
+                            BigDecimal fee = amount.multiply(BigDecimal.valueOf(0.01));
+                            BigDecimal total = amount.add(fee);
+                            if (account.canDebit(total)) {
+                                account.applyWithdrawal(amount);
+                                isOk = true;
+                            }
+                        }
+                        case 4 -> { // PAYMENT
+                            account.applyPayment(amount);
                             isOk = true;
                         }
-                    } else if (operationTypeId == 4) {
-                        // Credit operation (Payment)
-                        account.applyPayment(amount);
-                        isOk = true;
+                        default -> log.warn("Unknown operation type: {}", operationTypeId);
                     }
 
                     String status = isOk ? "OK" : "NOK";
-                    log.info("Processed Transaction -> Type={} Amount=${} Status={} AvailableLimit={}",
+                    log.info("Transaction -> Type={} Amount={} Status={} NewAvailable={}",
                             operationTypeId, amount, status, account.getAvailableLimit());
 
-                    // Persist results
-                    if (isOk) {
-                        return accountRepository.save(account)
-                                .then(transactionRepository.save(tx));
-                    } else {
-                        // NOK transactions still stored for audit
-                        return transactionRepository.save(tx);
-                    }
+                    Mono<Transaction> saveTx = transactionRepository.save(tx);
+                    return isOk ? accountRepository.save(account).then(saveTx) : saveTx;
                 });
-    }
-
-    private boolean isDebitOperation(int operationTypeId) {
-        // 1, 2, 3 are debit operations
-        return operationTypeId == 1 || operationTypeId == 2 || operationTypeId == 3;
     }
 }
